@@ -78,6 +78,9 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
             입장하기
           </button>
         </form>
+        <p style={{ color: '#3a3a4a', fontSize: '11px', marginTop: '40px', letterSpacing: '0.05em' }}>
+          v1.0.0
+        </p>
       </main>
     </div>
   );
