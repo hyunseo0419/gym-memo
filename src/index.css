@@ -45,12 +45,12 @@ a { text-decoration: none; color: inherit; }
   inset: 0;
   max-width: 430px;
   margin: 0 auto;
-  overflow: hidden;
   background: var(--bg);
 }
 
 .app-main {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding-top: var(--safe-top);
@@ -63,8 +63,8 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-around;
-  height: var(--nav-h);
-  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(64px + env(safe-area-inset-bottom, 34px));
+  padding-bottom: env(safe-area-inset-bottom, 34px);
   background: rgba(13, 13, 20, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
