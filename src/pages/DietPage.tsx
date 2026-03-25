@@ -51,6 +51,8 @@ function AddDietModal({
   const [calories, setCalories]   = useState('');
   const [protein, setProtein]     = useState('');
   const [error, setError]         = useState('');
+  // AI 분석 결과를 서버 ID와 함께 보관 (중복 저장 방지)
+  const [serverResult, setServerResult] = useState<DietEntry | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -60,36 +62,57 @@ function AddDietModal({
     if (!menuName.trim()) return;
     setFormState('analyzing');
     setError('');
-    try {
-      const result = await api.analyzeDiet(menuName.trim());
-      setCalories(String(result.calories));
-      setProtein(String(result.protein));
-      setFormState('preview');
-    } catch {
-      setFormState('manual');
-      setError('서버 연결 실패. 직접 입력해주세요.');
-    }
+    api.analyzeDiet(menuName.trim())
+      .then(result => {
+        setServerResult(result);           // 서버 ID 보관
+        setCalories(String(result.calories));
+        setProtein(String(result.protein));
+        setFormState('preview');
+      })
+      .catch(() => {
+        setFormState('manual');
+        setError('서버 연결 실패. 직접 입력해주세요.');
+      });
   };
 
   // 확인 후 저장 (preview / manual 공통)
   const handleSave = async () => {
     const cal = parseInt(calories);
     const pro = parseFloat(protein);
-    if (isNaN(cal) || isNaN(pro) || cal < 0 || pro < 0) return;
+    if (isNaN(cal) || isNaN(pro)) return;
 
-    const entry: DietEntry = {
-      id: generateId(),
-      timestamp: new Date().toISOString(),
-      menuName: menuName.trim(),
-      calories: cal,
-      protein: pro,
-    };
-
-    api.saveDiet({ menuName: entry.menuName, calories: entry.calories, protein: entry.protein, timestamp: entry.timestamp })
-      .catch(() => {});
-
-    addDietEntry(entry);
-    onAdded(entry);
+    if (formState === 'preview' && serverResult) {
+      // AI 모드: 서버에는 이미 저장됨 → 서버 ID로 로컬 저장 (수정된 값 반영)
+      const finalEntry: DietEntry = {
+        ...serverResult,
+        calories: cal,
+        protein: pro,
+      };
+      addDietEntry(finalEntry);
+      onAdded(finalEntry);
+    } else {
+      // 직접 입력 모드: 서버에 저장 → 받은 ID로 로컬 저장
+      try {
+        const saved = await api.saveDiet({
+          menuName: menuName.trim(),
+          calories: cal,
+          protein: pro,
+          timestamp: new Date().toISOString(),
+        });
+        addDietEntry(saved);
+        onAdded(saved);
+      } catch {
+        const entry: DietEntry = {
+          id: generateId(),
+          timestamp: new Date().toISOString(),
+          menuName: menuName.trim(),
+          calories: cal,
+          protein: pro,
+        };
+        addDietEntry(entry);
+        onAdded(entry);
+      }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
