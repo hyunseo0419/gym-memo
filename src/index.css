@@ -38,38 +38,31 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 a { text-decoration: none; color: inherit; }
 
 /* ── 앱 레이아웃 ─────────────────────────────────────── */
-.app-shell {
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  inset: 0;
+.app-main {
   max-width: 430px;
   margin: 0 auto;
+  min-height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 34px));
+  overflow-x: hidden;
   background: var(--bg);
 }
-
-.app-main {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-top: var(--safe-top);
-  scrollbar-width: none;
-}
-.app-main::-webkit-scrollbar { display: none; }
 
 /* ── 하단 네비게이션 ─────────────────────────────────── */
 .bottom-nav {
   display: flex;
   align-items: center;
   justify-content: space-around;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: calc(64px + env(safe-area-inset-bottom, 34px));
   padding-bottom: env(safe-area-inset-bottom, 34px);
   background: rgba(13, 13, 20, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
-  flex-shrink: 0;
   z-index: 100;
 }
 

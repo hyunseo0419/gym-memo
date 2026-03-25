@@ -38,18 +38,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <WorkoutProvider>
-        <div className="app-shell">
-          <main className="app-main">
-            <Routes>
-              <Route path="/"         element={<HomePage />} />
-              <Route path="/workout"  element={<WorkoutPage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/diet"     element={<DietPage />} />
-              <Route path="/stats"    element={<StatsPage />} />
-            </Routes>
-          </main>
-          <BottomNav />
-        </div>
+        <main className="app-main">
+          <Routes>
+            <Route path="/"         element={<HomePage />} />
+            <Route path="/workout"  element={<WorkoutPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/diet"     element={<DietPage />} />
+            <Route path="/stats"    element={<StatsPage />} />
+          </Routes>
+        </main>
+        <BottomNav />
       </WorkoutProvider>
     </BrowserRouter>
   );
