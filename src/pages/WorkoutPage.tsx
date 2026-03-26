@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWorkout } from '../context/WorkoutContext';
-import { BODY_PARTS, BODY_PART_COLORS, getExercisesByBodyPart } from '../data/exercises';
+import { BODY_PARTS, BODY_PART_COLORS, CARDIO_COLOR, CARDIO_ICON, getExercisesByBodyPart } from '../data/exercises';
 import { api } from '../services/api';
 import { addSession, removeSession } from '../services/storage';
 import type { BodyPart } from '../types';
@@ -8,6 +9,7 @@ import type { BodyPart } from '../types';
 // ── 부위 선택 화면 ──────────────────────────────────────────────────
 function BodyPartSelector() {
   const { selectBodyPart, state } = useWorkout();
+  const navigate = useNavigate();
   const completedParts = state.currentSession?.bodyPartLogs.map(l => l.bodyPart) ?? [];
 
   return (
@@ -33,6 +35,15 @@ function BodyPartSelector() {
             </button>
           );
         })}
+        {/* 유산소 카드 */}
+        <button
+          className="body-part-card"
+          style={{ '--accent': CARDIO_COLOR.accent, '--grad-from': CARDIO_COLOR.from, '--grad-to': CARDIO_COLOR.to } as React.CSSProperties}
+          onClick={() => navigate('/cardio')}
+        >
+          <span className="body-part-icon">{CARDIO_ICON}</span>
+          <span className="body-part-name">유산소</span>
+        </button>
       </div>
     </div>
   );

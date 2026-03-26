@@ -352,7 +352,7 @@ export default {
           let details = {};
           try { details = JSON.parse(p['상세']?.rich_text?.[0]?.text?.content ?? '{}'); } catch {}
           return {
-            id:       p['세션ID']?.rich_text?.[0]?.text?.content ?? page.id,
+            id:       page.id,
             date:     p['날짜']?.date?.start ?? '',
             type:     p['종류']?.select?.name ?? '',
             duration: p['시간']?.number ?? 0,
