@@ -5,8 +5,8 @@ import {
 } from 'recharts';
 import { getSessions, getDietEntries, getProteinGoal } from '../services/storage';
 import { api } from '../services/api';
-import { BODY_PARTS, BODY_PART_COLORS, EXERCISES } from '../data/exercises';
-import type { WorkoutSession, DietEntry, BodyPart } from '../types';
+import { BODY_PARTS, BODY_PART_COLORS, CARDIO_COLOR, EXERCISES } from '../data/exercises';
+import type { WorkoutSession, DietEntry, BodyPart, CardioSession } from '../types';
 
 // ── 계산 헬퍼 ──────────────────────────────────────────────────────
 
@@ -114,6 +114,21 @@ function improvedExercises(sessions: WorkoutSession[], thisMonth: string, lastMo
   });
 
   return improved.sort((a, b) => b.diff - a.diff);
+}
+
+/** 최근 6개월 월별 유산소 칼로리 */
+function monthlyCardio(sessions: CardioSession[]) {
+  return Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    const key = monthOf(d);
+    const filtered = sessions.filter(c => c.date.startsWith(key));
+    return {
+      label:    `${d.getMonth() + 1}월`,
+      calories: filtered.reduce((s, c) => s + c.calories, 0),
+      minutes:  filtered.reduce((s, c) => s + c.duration, 0),
+    };
+  });
 }
 
 /** 단백질 최근 7일 */
@@ -396,6 +411,33 @@ function MuscleWeaknessSection({ data }: { data: MuscleItem[] }) {
   );
 }
 
+function CardioMonthlyChart({ data }: { data: { label: string; calories: number; minutes: number }[] }) {
+  const max = Math.max(...data.map(d => d.calories), 1);
+  return (
+    <div style={{ width: '100%', height: 160 }}>
+      <ResponsiveContainer>
+        <BarChart data={data} barCategoryGap="20%">
+          <XAxis dataKey="label" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
+          <YAxis hide domain={[0, max]} />
+          <Tooltip
+            cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+            contentStyle={{ background: '#1C1C2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+            formatter={(v: any, _: any, item: any) => [
+              `${(v as number).toLocaleString()}kcal · ${item?.payload?.minutes ?? 0}분`,
+              '유산소',
+            ]}
+          />
+          <Bar dataKey="calories" radius={[4, 4, 0, 0]}>
+            {data.map((_e, i) => (
+              <Cell key={i} fill={i === data.length - 1 ? CARDIO_COLOR.accent : '#3A1A1A'} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function ProteinBars({ data }: { data: { label: string; protein: number; pct: number }[] }) {
   return (
     <div style={{ width: '100%', height: 160 }}>
@@ -424,9 +466,10 @@ function ProteinBars({ data }: { data: { label: string; protein: number; pct: nu
 // ── 메인 ─────────────────────────────────────────────────────────
 
 export default function StatsPage() {
-  const [sessions, setSessions]       = useState<WorkoutSession[]>([]);
-  const [dietEntries, setDietEntries] = useState<DietEntry[]>([]);
-  const [proteinGoal, setProteinGoal] = useState(0);
+  const [sessions, setSessions]         = useState<WorkoutSession[]>([]);
+  const [dietEntries, setDietEntries]   = useState<DietEntry[]>([]);
+  const [proteinGoal, setProteinGoal]   = useState(0);
+  const [cardioSessions, setCardioSessions] = useState<CardioSession[]>([]);
 
   const loadData = () => {
     setSessions(getSessions());
@@ -439,8 +482,9 @@ export default function StatsPage() {
     loadData();
 
     // 2. 백그라운드에서 서버(DB) 데이터 동기화
-    Promise.all([api.getWorkouts(), api.getDietHistory()])
-      .then(([remoteSessions, remoteDiet]) => {
+    Promise.all([api.getWorkouts(), api.getDietHistory(), api.getCardioHistory()])
+      .then(([remoteSessions, remoteDiet, remoteCardio]) => {
+        setCardioSessions(remoteCardio);
         // 세션 병합 후 저장
         const localS = getSessions();
         const sMap = new Map(localS.map(s => [s.id, s]));
@@ -478,9 +522,11 @@ export default function StatsPage() {
   const improvedData    = useMemo(() => improvedExercises(sessions, thisM, lastM), [sessions, thisM, lastM]);
   const muscleData      = useMemo(() => muscleWeakness(sessions), [sessions]);
   const proteinData     = useMemo(() => proteinLast7(dietEntries, proteinGoal), [dietEntries, proteinGoal]);
+  const cardioData      = useMemo(() => monthlyCardio(cardioSessions), [cardioSessions]);
 
   const hasWorkouts = sessions.length > 0;
   const hasDiet     = dietEntries.length > 0;
+  const hasCardio   = cardioSessions.length > 0;
   const monthLabel  = `${now.getMonth() + 1}월`;
 
   if (!hasWorkouts && !hasDiet) {
@@ -501,6 +547,27 @@ export default function StatsPage() {
         <h1 className="page-title">통계</h1>
         <span className="stats-month-badge">{monthLabel}</span>
       </div>
+
+      {/* 단백질 달성률 */}
+      {hasDiet && (
+        <section className="stats-section">
+          <h2 className="stats-section-title">단백질 달성률 <span className="stats-sub">최근 7일</span></h2>
+          {proteinGoal > 0 ? (
+            <>
+              <ProteinBars data={proteinData} />
+              <div className="protein-legend">
+                <span className="legend-item"><span className="legend-dot" style={{ background: '#AAFF00' }} />100% 달성</span>
+                <span className="legend-item"><span className="legend-dot" style={{ background: '#77DD00' }} />70% 이상</span>
+                <span className="legend-item"><span className="legend-dot" style={{ background: '#2A2A3A' }} />미달</span>
+              </div>
+            </>
+          ) : (
+            <div className="empty-state" style={{ height: 160, justifyContent: 'center' }}>
+              <p>체중을 입력하여 단백질 목표를 설정해보세요 ⚖️</p>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* 이번 달 요약 */}
       {hasWorkouts && (
@@ -558,26 +625,28 @@ export default function StatsPage() {
         </section>
       )}
 
-      {/* 단백질 달성률 */}
-      {hasDiet && (
+      {/* 월별 유산소 */}
+      {hasCardio && (
         <section className="stats-section">
-          <h2 className="stats-section-title">단백질 달성률 <span className="stats-sub">최근 7일</span></h2>
-          {proteinGoal > 0 ? (
-            <>
-              <ProteinBars data={proteinData} />
-              <div className="protein-legend">
-                <span className="legend-item"><span className="legend-dot" style={{ background: '#AAFF00' }} />100% 달성</span>
-                <span className="legend-item"><span className="legend-dot" style={{ background: '#77DD00' }} />70% 이상</span>
-                <span className="legend-item"><span className="legend-dot" style={{ background: '#2A2A3A' }} />미달</span>
-              </div>
-            </>
-          ) : (
-            <div className="empty-state" style={{ height: 160, justifyContent: 'center' }}>
-              <p>체중을 입력하여 단백질 목표를 설정해보세요 ⚖️</p>
+          <h2 className="stats-section-title">유산소 소모 칼로리 🏃 <span className="stats-sub">최근 6개월</span></h2>
+          <CardioMonthlyChart data={cardioData} />
+          <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
+            <div className="stat-summary-card" style={{ flex: 1 }}>
+              <span className="stat-summary-value">
+                {cardioData[cardioData.length - 1].minutes}<small>분</small>
+              </span>
+              <span className="stat-summary-label">이번달 유산소</span>
             </div>
-          )}
+            <div className="stat-summary-card" style={{ flex: 1 }}>
+              <span className="stat-summary-value">
+                {cardioData[cardioData.length - 1].calories.toLocaleString()}<small>kcal</small>
+              </span>
+              <span className="stat-summary-label">이번달 소모</span>
+            </div>
+          </div>
         </section>
       )}
+
     </div>
   );
 }

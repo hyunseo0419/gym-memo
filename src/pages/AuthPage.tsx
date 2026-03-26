@@ -79,7 +79,7 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
           </button>
         </form>
         <p style={{ color: '#3a3a4a', fontSize: '11px', marginTop: '40px', letterSpacing: '0.05em' }}>
-          v1.0.3
+          v1.0.4
         </p>
       </main>
     </div>

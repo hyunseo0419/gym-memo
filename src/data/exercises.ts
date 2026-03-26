@@ -80,6 +80,10 @@ export const BODY_PART_COLORS: Record<BodyPart, { from: string; to: string; acce
   '어깨': { from: '#9944CC', to: '#CC77FF', accent: '#CC77FF' }, // Purple
 };
 
+// 유산소 전용 색상/아이콘
+export const CARDIO_COLOR = { from: '#CC0033', to: '#FF3366', accent: '#FF3366' };
+export const CARDIO_ICON = '🏃';
+
 export function getExercisesByBodyPart(bodyPart: BodyPart): Exercise[] {
   return EXERCISES.filter(e => e.bodyPart === bodyPart);
 }

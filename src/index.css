@@ -252,12 +252,6 @@ a { text-decoration: none; color: inherit; }
   margin-bottom: 24px;
 }
 
-.body-part-grid > :nth-child(5) {
-  grid-column: 1 / -1;
-  max-width: 50%;
-  margin: 0 auto;
-  width: 100%;
-}
 
 .body-part-card {
   position: relative;
@@ -2010,3 +2004,26 @@ a { text-decoration: none; color: inherit; }
   font-weight: 500;
   color: var(--text-muted);
 }
+
+/* ── 유산소 칼로리 미리보기 ─────────────────────────────────── */
+.calorie-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-top: 4px;
+}
+
+.calorie-label {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.calorie-value {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+

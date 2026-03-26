@@ -40,6 +40,29 @@ export interface WorkoutPayload {
   deviceInfo?: string;
 }
 
+// 유산소 기록
+export type CardioType = '런닝머신' | '배드민턴';
+export type BadmintonIntensity = 'ガッツリ' | '中間' | 'まったり';
+
+export interface TreadmillData {
+  speed: number;    // km/h
+  incline: number;  // %
+}
+
+export interface BadmintonData {
+  intensity: BadmintonIntensity;
+}
+
+export interface CardioSession {
+  id: string;
+  date: string;       // ISO string
+  type: CardioType;
+  duration: number;   // 분
+  calories: number;   // kcal
+  weight: number;     // kg (계산 시 사용한 체중)
+  details: TreadmillData | BadmintonData;
+}
+
 // 식단 기록
 export interface DietEntry {
   id: string;

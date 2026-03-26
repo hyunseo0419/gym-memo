@@ -7,6 +7,7 @@ import WorkoutPage from './pages/WorkoutPage';
 import CalendarPage from './pages/CalendarPage';
 import DietPage from './pages/DietPage';
 import StatsPage from './pages/StatsPage';
+import CardioPage from './pages/CardioPage';
 import AuthPage from './pages/AuthPage';
 import './App.css';
 
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/diet"     element={<DietPage />} />
             <Route path="/stats"    element={<StatsPage />} />
+            <Route path="/cardio"   element={<CardioPage />} />
           </Routes>
         </main>
         <BottomNav />

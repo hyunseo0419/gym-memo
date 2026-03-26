@@ -1,4 +1,4 @@
-import type { WorkoutSession, WorkoutPayload, DietEntry } from '../types';
+import type { WorkoutSession, WorkoutPayload, DietEntry, CardioSession } from '../types';
 
 const SERVER_URL = import.meta.env.VITE_WORKER_URL || 'https://gym-memo.gym-memo-hyunseo.workers.dev';
 
@@ -57,6 +57,22 @@ export const api = {
 
   deleteDiet(id: string): Promise<void> {
     return request<void>(`/api/diet/${id}`, { method: 'DELETE' });
+  },
+
+  // ── 유산소 ─────────────────────────────────────────────────────────
+  saveCardio(session: CardioSession) {
+    return request<{ success: boolean }>('/api/cardio', {
+      method: 'POST',
+      body: JSON.stringify(session),
+    });
+  },
+
+  getCardioHistory(): Promise<CardioSession[]> {
+    return request<CardioSession[]>('/api/cardio');
+  },
+
+  deleteCardio(id: string): Promise<void> {
+    return request<void>(`/api/cardio/${id}`, { method: 'DELETE' });
   },
 };
 

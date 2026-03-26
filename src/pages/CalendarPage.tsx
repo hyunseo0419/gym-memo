@@ -1,26 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSessions, getDietEntries, removeSession, removeDietEntry } from '../services/storage';
 import { api } from '../services/api';
-import { BODY_PART_COLORS } from '../data/exercises';
-import type { WorkoutSession, DietEntry, BodyPart } from '../types';
+import { BODY_PART_COLORS, CARDIO_COLOR } from '../data/exercises';
+import type { WorkoutSession, DietEntry, BodyPart, CardioSession } from '../types';
 
 // ── 데이터 구조 ─────────────────────────────────────────────────────
 interface DayData {
   workouts: WorkoutSession[];
   diet: DietEntry[];
+  cardio: CardioSession[];
 }
 
 function buildDateMap(
   sessions: WorkoutSession[],
   dietEntries: DietEntry[],
+  cardioSessions: CardioSession[],
 ): Map<string, DayData> {
   const map = new Map<string, DayData>();
   const get = (k: string) => {
-    if (!map.has(k)) map.set(k, { workouts: [], diet: [] });
+    if (!map.has(k)) map.set(k, { workouts: [], diet: [], cardio: [] });
     return map.get(k)!;
   };
   sessions.forEach(s => get(s.date.slice(0, 10)).workouts.push(s));
   dietEntries.forEach(e => get(e.timestamp.slice(0, 10)).diet.push(e));
+  cardioSessions.forEach(c => get(c.date.slice(0, 10)).cardio.push(c));
   return map;
 }
 
@@ -61,6 +64,7 @@ function DayCell({
   if (day === null) return <div className="cal-cell cal-cell-empty" />;
 
   const hasWorkout = (data?.workouts.length ?? 0) > 0;
+  const hasCardio  = (data?.cardio.length ?? 0) > 0;
 
   // 운동한 부위들 (최대 3개 점)
   const parts: BodyPart[] = [];
@@ -77,18 +81,14 @@ function DayCell({
     >
       <span className="cal-day-num">{day}</span>
 
-      {/* 운동 부위 dot들 */}
-      {hasWorkout && (
-        <div className="cal-dots">
-          {parts.slice(0, 3).map(p => (
-            <span
-              key={p}
-              className="cal-dot"
-              style={{ background: BODY_PART_COLORS[p].accent }}
-            />
-          ))}
-        </div>
-      )}
+      <div className="cal-dots">
+        {hasWorkout && parts.slice(0, 3).map(p => (
+          <span key={p} className="cal-dot" style={{ background: BODY_PART_COLORS[p].accent }} />
+        ))}
+        {hasCardio && (
+          <span className="cal-dot" style={{ background: CARDIO_COLOR.accent }} />
+        )}
+      </div>
     </button>
   );
 }
@@ -101,10 +101,11 @@ function DayDetail({ data, dateLabel, onDeleted }: {
 }) {
   const [confirmWorkout, setConfirmWorkout] = useState<string | null>(null);
   const [confirmDiet, setConfirmDiet]       = useState<string | null>(null);
+  const [confirmCardio, setConfirmCardio]   = useState<string | null>(null);
 
   const totalCal = data.diet.reduce((s, e) => s + e.calories, 0);
   const totalPro = data.diet.reduce((s, e) => s + e.protein, 0);
-  const hasAnything = data.workouts.length > 0 || data.diet.length > 0;
+  const hasAnything = data.workouts.length > 0 || data.diet.length > 0 || data.cardio.length > 0;
 
   const handleDeleteWorkout = (sessionId: string) => {
     removeSession(sessionId);
@@ -176,6 +177,44 @@ function DayDetail({ data, dateLabel, onDeleted }: {
 
       )}
 
+      {/* 유산소 */}
+      {data.cardio.length > 0 && (
+        <div className="day-detail-section">
+          <p className="day-detail-section-title">🏃 유산소</p>
+          {data.cardio.map(c => {
+            const detailStr = c.type === '런닝머신'
+              ? `속도 ${'speed' in c.details ? c.details.speed : '-'}km/h · 인클라인 ${'incline' in c.details ? c.details.incline : 0}%`
+              : `${'intensity' in c.details ? c.details.intensity : '-'}`;
+            return (
+              <div key={c.id} className="day-workout-card">
+                <div className="day-workout-card-header">
+                  <span
+                    className="part-badge"
+                    style={{ background: `linear-gradient(135deg, ${CARDIO_COLOR.from}, ${CARDIO_COLOR.to})`, color: '#000' }}
+                  >
+                    {c.type}
+                  </span>
+                  <button className="cal-del-btn" onClick={() => setConfirmCardio(c.id)}>✕</button>
+                </div>
+                {confirmCardio === c.id && (
+                  <div className="cal-confirm-row">
+                    <span>유산소 기록을 삭제할까요?</span>
+                    <button className="diet-del-confirm" onClick={() => { api.deleteCardio(c.id).catch(() => {}); setConfirmCardio(null); onDeleted(); }}>삭제</button>
+                    <button className="diet-del-cancel" onClick={() => setConfirmCardio(null)}>취소</button>
+                  </div>
+                )}
+                <div className="day-workout-exercises">
+                  <div className="day-exercise-row">
+                    <span className="day-ex-name">{detailStr}</span>
+                    <span className="day-ex-info">{c.duration}분 · {c.calories}kcal</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* 식단 */}
       {data.diet.length > 0 && (
         <div className="day-detail-section">
@@ -219,11 +258,12 @@ export default function CalendarPage() {
   const reload = useCallback(async () => {
     const localSessions = getSessions();
     const localDiet = getDietEntries();
-    setDateMap(buildDateMap(localSessions, localDiet));
+    setDateMap(buildDateMap(localSessions, localDiet, []));
     try {
-      const [remoteSessions, remoteDiet] = await Promise.all([
+      const [remoteSessions, remoteDiet, remoteCardio] = await Promise.all([
         api.getWorkouts(),
-        api.getDietHistory()
+        api.getDietHistory(),
+        api.getCardioHistory(),
       ]);
       const mergedSessions = [...localSessions];
       for (const rs of remoteSessions) {
@@ -231,10 +271,10 @@ export default function CalendarPage() {
       }
       const mergedDietMap = new Map(localDiet.map(e => [e.id, e]));
       for (const rd of remoteDiet) {
-        mergedDietMap.set(rd.id, rd); // 원격 우선 덮어쓰기
+        mergedDietMap.set(rd.id, rd);
       }
       const finalMergedDiet = Array.from(mergedDietMap.values());
-      setDateMap(buildDateMap(mergedSessions, finalMergedDiet));
+      setDateMap(buildDateMap(mergedSessions, finalMergedDiet, remoteCardio));
     } catch {
       // 서버 오류 시 로컬 데이터 유지
     }
@@ -245,7 +285,7 @@ export default function CalendarPage() {
   const days    = getCalendarDays(year, month);
   const tKey    = todayKey();
   const selKey  = selected !== null ? toKey(year, month, selected) : null;
-  const selData = selKey ? dateMap.get(selKey) ?? { workouts: [], diet: [] } : null;
+  const selData = selKey ? dateMap.get(selKey) ?? { workouts: [], diet: [], cardio: [] } : null;
 
   const prevMonth = () => {
     if (month === 0) { setYear(y => y - 1); setMonth(11); }
@@ -299,12 +339,16 @@ export default function CalendarPage() {
 
       {/* 범례 */}
       <div className="cal-legend">
-        {['가슴','등','하체','팔','어깨'].map(part => (
+        {(['가슴','등','하체','팔','어깨'] as BodyPart[]).map(part => (
           <span key={part} className="cal-legend-item">
-            <span className="cal-dot" style={{ background: BODY_PART_COLORS[part as BodyPart].accent }} />
+            <span className="cal-dot" style={{ background: BODY_PART_COLORS[part].accent }} />
             {part}
           </span>
         ))}
+        <span className="cal-legend-item">
+          <span className="cal-dot" style={{ background: CARDIO_COLOR.accent }} />
+          유산소
+        </span>
       </div>
 
       {/* 요일 헤더 */}

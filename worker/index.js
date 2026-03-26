@@ -309,6 +309,62 @@ export default {
         });
       }
 
+      // ── 유산소 기록 저장 ────────────────────────────────────────
+      if (path === '/api/cardio' && method === 'POST') {
+        const session = await request.json();
+        if (!session.type || !session.duration) return err('type, duration 필요', 400);
+
+        const detailStr = JSON.stringify(session.details ?? {});
+
+        await notionRequest(env, '/pages', 'POST', {
+          parent: { database_id: env.NOTION_CARDIO_DB_ID },
+          properties: {
+            '제목':     titleProp(`${session.type} ${session.duration}분`),
+            '날짜':     dateProp(session.date ?? new Date().toISOString()),
+            '종류':     selectProp(session.type),
+            '시간':     numProp(session.duration),
+            '칼로리':   numProp(session.calories),
+            '체중':     numProp(session.weight),
+            '상세':     textProp(detailStr),
+            '세션ID':   textProp(session.id),
+          },
+        });
+
+        return json({ success: true });
+      }
+
+      // ── 유산소 기록 삭제 ────────────────────────────────────────
+      if (path.startsWith('/api/cardio/') && method === 'DELETE') {
+        const pageId = path.replace('/api/cardio/', '');
+        await notionRequest(env, `/pages/${pageId}`, 'PATCH', { archived: true });
+        return json({ success: true });
+      }
+
+      // ── 유산소 기록 조회 ────────────────────────────────────────
+      if (path === '/api/cardio' && method === 'GET') {
+        const data = await notionRequest(env, `/databases/${env.NOTION_CARDIO_DB_ID}/query`, 'POST', {
+          sorts: [{ property: '날짜', direction: 'descending' }],
+          page_size: 100,
+        });
+
+        const sessions = data.results.map(page => {
+          const p = page.properties;
+          let details = {};
+          try { details = JSON.parse(p['상세']?.rich_text?.[0]?.text?.content ?? '{}'); } catch {}
+          return {
+            id:       p['세션ID']?.rich_text?.[0]?.text?.content ?? page.id,
+            date:     p['날짜']?.date?.start ?? '',
+            type:     p['종류']?.select?.name ?? '',
+            duration: p['시간']?.number ?? 0,
+            calories: p['칼로리']?.number ?? 0,
+            weight:   p['체중']?.number ?? 0,
+            details,
+          };
+        });
+
+        return json(sessions);
+      }
+
       return err('Not found', 404);
 
     } catch (e) {
