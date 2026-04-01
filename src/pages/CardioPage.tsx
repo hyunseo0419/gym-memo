@@ -4,6 +4,7 @@ import { CARDIO_COLOR } from '../data/exercises';
 import { getLatestBodyWeight } from '../services/storage';
 import { api } from '../services/api';
 import type { CardioType, BadmintonIntensity, CardioSession } from '../types';
+import { getEffectiveDateISO } from '../utils/date';
 
 const { from, to, accent } = CARDIO_COLOR;
 
@@ -330,7 +331,7 @@ export default function CardioPage() {
     setSaveError(null);
     const session: CardioSession = {
       id:   `cardio_${Date.now()}`,
-      date: new Date().toISOString(),
+      date: getEffectiveDateISO(),
       ...partial,
     };
     try {

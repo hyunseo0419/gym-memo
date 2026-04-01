@@ -4,6 +4,7 @@ import {
 } from '../services/storage';
 import { api } from '../services/api';
 import type { DietEntry } from '../types';
+import { getEffectiveDateString } from '../utils/date';
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -18,27 +19,24 @@ function formatDate(iso: string): string {
 }
 
 function isToday(iso: string): boolean {
-  return new Date(iso).toDateString() === new Date().toDateString();
+  return getEffectiveDateString(new Date(iso)) === getEffectiveDateString();
 }
 
 function groupByDate(entries: DietEntry[]): { dateLabel: string; entries: DietEntry[] }[] {
   const map = new Map<string, DietEntry[]>();
   [...entries].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).forEach(e => {
-    const key = new Date(e.timestamp).toDateString();
+    const key = getEffectiveDateString(new Date(e.timestamp));
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(e);
   });
+  const todayKey = getEffectiveDateString();
   return Array.from(map.entries()).map(([key, entries]) => ({
-    dateLabel: new Date(key).toDateString() === new Date().toDateString()
-      ? '오늘'
-      : formatDate(entries[0].timestamp),
+    dateLabel: key === todayKey ? '오늘' : formatDate(entries[0].timestamp),
     entries,
   }));
 }
 
 // ── 입력 폼 ─────────────────────────────────────────────────────────
-type FormState = 'idle' | 'analyzing' | 'preview' | 'manual';
-
 function AddDietModal({
   onClose,
   onAdded,
@@ -46,7 +44,7 @@ function AddDietModal({
   onClose: () => void;
   onAdded: (entry: DietEntry) => void;
 }) {
-  const [formState, setFormState] = useState<FormState>('idle');
+  const [analyzing, setAnalyzing] = useState(false);
   const [menuName, setMenuName]   = useState('');
   const [calories, setCalories]   = useState('');
   const [protein, setProtein]     = useState('');
@@ -57,41 +55,33 @@ function AddDietModal({
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  // 서버 AI 분석 요청 → preview 상태로
+  // AI 분석: 칼로리·단백질 자동 입력
   const handleAnalyze = async () => {
     if (!menuName.trim()) return;
-    setFormState('analyzing');
+    setAnalyzing(true);
     setError('');
     api.analyzeDiet(menuName.trim())
       .then(result => {
-        setServerResult(result);           // 서버 ID 보관
+        setServerResult(result);
         setCalories(String(result.calories));
         setProtein(String(result.protein));
-        setFormState('preview');
       })
-      .catch(() => {
-        setFormState('manual');
-        setError('서버 연결 실패. 직접 입력해주세요.');
-      });
+      .catch(() => setError('AI 분석 실패. 직접 입력해주세요.'))
+      .finally(() => setAnalyzing(false));
   };
 
-  // 확인 후 저장 (preview / manual 공통)
   const handleSave = async () => {
     const cal = parseInt(calories);
     const pro = parseFloat(protein);
     if (isNaN(cal) || isNaN(pro)) return;
 
-    if (formState === 'preview' && serverResult) {
-      // AI 모드: 서버에는 이미 저장됨 → 서버 ID로 로컬 저장 (수정된 값 반영)
-      const finalEntry: DietEntry = {
-        ...serverResult,
-        calories: cal,
-        protein: pro,
-      };
+    if (serverResult) {
+      // AI 모드: 서버에는 이미 저장됨 → 서버 ID로 로컬 저장
+      const finalEntry: DietEntry = { ...serverResult, calories: cal, protein: pro };
       addDietEntry(finalEntry);
       onAdded(finalEntry);
     } else {
-      // 직접 입력 모드: 서버에 저장 → 받은 ID로 로컬 저장
+      // 직접 입력 모드
       try {
         const saved = await api.saveDiet({
           menuName: menuName.trim(),
@@ -115,21 +105,15 @@ function AddDietModal({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && formState === 'idle') handleAnalyze();
-  };
-
-  const isEditState = formState === 'preview' || formState === 'manual';
+  const canSave = !analyzing && menuName.trim() && calories && protein;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}>
 
-        <h3 className="modal-title">
-          {formState === 'preview' ? 'AI 분석 결과' : formState === 'manual' ? '직접 입력' : '식단 추가'}
-        </h3>
+        <h3 className="modal-title">식단 추가</h3>
 
-        {/* 메뉴명 입력 */}
+        {/* 메뉴명 */}
         <div className="form-group">
           <label className="form-label">메뉴 이름</label>
           <input
@@ -138,75 +122,56 @@ function AddDietModal({
             className="text-input"
             placeholder="예: 닭가슴살150, 밥200"
             value={menuName}
-            onChange={e => { setMenuName(e.target.value); if (isEditState) setFormState('idle'); }}
-            onKeyDown={handleKeyDown}
-            disabled={formState === 'analyzing'}
+            onChange={e => { setMenuName(e.target.value); setServerResult(null); }}
+            disabled={analyzing}
           />
         </div>
 
-        {/* 분석 중 */}
-        {formState === 'analyzing' && (
-          <div className="diet-analyzing">
-            <div className="spinner" />
-            <p>AI가 영양 정보를 분석하는 중...</p>
+        {/* AI 자동 입력 */}
+        <button
+          className="btn-ghost"
+          style={{ marginBottom: 4 }}
+          onClick={handleAnalyze}
+          disabled={!menuName.trim() || analyzing}
+        >
+          {analyzing
+            ? <><span className="spinner-inline" /> 분석 중...</>
+            : '🤖 AI 자동 입력'}
+        </button>
+        {error && <p className="diet-error">{error}</p>}
+        {serverResult && !error && (
+          <p className="diet-preview-hint">AI 분석 완료 — 값을 수정할 수 있어요</p>
+        )}
+
+        {/* 칼로리·단백질 */}
+        <div className="form-row-2">
+          <div className="form-group">
+            <label className="form-label">칼로리 (kcal)</label>
+            <input
+              type="number" inputMode="numeric" className="num-input"
+              placeholder="0" value={calories}
+              onChange={e => setCalories(e.target.value)}
+              disabled={analyzing}
+            />
           </div>
-        )}
+          <div className="form-group">
+            <label className="form-label">단백질 (g)</label>
+            <input
+              type="number" inputMode="decimal" className="num-input"
+              placeholder="0" value={protein}
+              onChange={e => setProtein(e.target.value)}
+              disabled={analyzing}
+            />
+          </div>
+        </div>
 
-        {/* 결과 수정 + 저장 (preview / manual 공통) */}
-        {isEditState && (
-          <>
-            {error && <p className="diet-error">{error}</p>}
-            {formState === 'preview' && (
-              <p className="diet-preview-hint">값을 수정하고 저장할 수 있어요</p>
-            )}
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label">칼로리 (kcal)</label>
-                <input
-                  type="number" inputMode="numeric" className="num-input"
-                  placeholder="0" value={calories}
-                  onChange={e => setCalories(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">단백질 (g)</label>
-                <input
-                  type="number" inputMode="decimal" className="num-input"
-                  placeholder="0" value={protein}
-                  onChange={e => setProtein(e.target.value)}
-                />
-              </div>
-            </div>
-            <button
-              className="btn-primary" style={{ marginTop: 8 }}
-              onClick={handleSave}
-              disabled={!menuName.trim() || !calories || !protein}
-            >
-              저장
-            </button>
-            {formState === 'manual' && (
-              <button className="btn-ghost" onClick={() => { setFormState('idle'); setError(''); }}>
-                AI 분석 다시 시도
-              </button>
-            )}
-          </>
-        )}
-
-        {/* 기본: AI 분석 버튼 */}
-        {formState === 'idle' && (
-          <>
-            <button
-              className="btn-primary" style={{ marginTop: 8 }}
-              onClick={handleAnalyze}
-              disabled={!menuName.trim()}
-            >
-              🤖 AI 분석
-            </button>
-            <button className="btn-ghost" onClick={() => setFormState('manual')}>
-              직접 입력
-            </button>
-          </>
-        )}
+        <button
+          className="btn-primary" style={{ marginTop: 8 }}
+          onClick={handleSave}
+          disabled={!canSave}
+        >
+          저장
+        </button>
       </div>
     </div>
   );

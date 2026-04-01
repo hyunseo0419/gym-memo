@@ -1,4 +1,5 @@
 import type { WorkoutSession, DietEntry } from '../types';
+import { getEffectiveDateString } from '../utils/date';
 
 const KEYS = {
   sessions:    'gym_sessions',
@@ -59,8 +60,8 @@ export function removeDietEntry(id: string): void {
 }
 
 export function getTodayDietEntries(): DietEntry[] {
-  const today = new Date().toDateString();
-  return getDietEntries().filter(e => new Date(e.timestamp).toDateString() === today);
+  const today = getEffectiveDateString();
+  return getDietEntries().filter(e => getEffectiveDateString(new Date(e.timestamp)) === today);
 }
 
 // ── 단백질 목표 ────────────────────────────────────────────────────

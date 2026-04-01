@@ -24,6 +24,10 @@ export const EXERCISES: Exercise[] = [
   { id: 'back_8', name: '시티드로우', bodyPart: '등', target: '중부등' },
   { id: 'back_9', name: '덤벨로우', bodyPart: '등', target: '광배근' },
   { id: 'back_10', name: '로잉머신', bodyPart: '등', target: '중부등' },
+  { id: 'back_11', name: '렛풀다운(언더그립)', bodyPart: '등', target: '광배근' },
+  { id: 'back_12', name: '렛풀다운(패러렐그립)', bodyPart: '등', target: '광배근' },
+  { id: 'back_13', name: '시티드로우(와이드그립)', bodyPart: '등', target: '중부등' },
+  { id: 'back_14', name: '친업', bodyPart: '등', target: '광배근' },
 
   // 어깨
   { id: 'shoulder_1', name: '밀리터리프레스', bodyPart: '어깨', target: '전면삼각근' },
@@ -33,6 +37,9 @@ export const EXERCISES: Exercise[] = [
   { id: 'shoulder_5', name: '리버스펙덱', bodyPart: '어깨', target: '후면삼각근' },
   { id: 'shoulder_6', name: '프론트오버', bodyPart: '어깨', target: '전면삼각근' },
   { id: 'shoulder_7', name: '벤트오버원암', bodyPart: '어깨', target: '후면삼각근' },
+  { id: 'shoulder_8', name: '스미스프레스', bodyPart: '어깨', target: '전면삼각근' },
+  { id: 'shoulder_9', name: '케이블사레레', bodyPart: '어깨', target: '측면삼각근' },
+  { id: 'shoulder_10', name: '업라이트로우', bodyPart: '어깨', target: '측면삼각근' },
 
   // 하체
   { id: 'leg_1', name: '스쿼트', bodyPart: '하체', target: '대퇴사두' },
@@ -59,6 +66,9 @@ export const EXERCISES: Exercise[] = [
   { id: 'arm_8', name: '케이불푸쉬다운', bodyPart: '팔', target: '삼두' },
   { id: 'arm_9', name: '암풀푸쉬다운', bodyPart: '팔', target: '삼두' },
   { id: 'arm_10', name: '원암푸시다운', bodyPart: '팔', target: '삼두' },
+  { id: 'arm_11', name: '딥스', bodyPart: '팔', target: '삼두' },
+  { id: 'arm_12', name: '케이블컬', bodyPart: '팔', target: '이두' },
+  { id: 'arm_13', name: '클로즈그립벤치프레스', bodyPart: '팔', target: '삼두' },
 ];
 
 export const BODY_PARTS: BodyPart[] = ['가슴', '등', '하체', '팔', '어깨'];

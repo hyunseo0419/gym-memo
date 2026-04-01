@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import type { WorkoutSession, BodyPartLog, ExerciseLog, WorkoutSet, Exercise, BodyPart } from '../types';
+import { getEffectiveDateISO } from '../utils/date';
 
 interface WorkoutState {
   currentSession: WorkoutSession | null;
@@ -33,7 +34,7 @@ function workoutReducer(state: WorkoutState, action: WorkoutAction): WorkoutStat
         ...state,
         currentSession: {
           id: generateId(),
-          date: new Date().toISOString(),
+          date: getEffectiveDateISO(),
           bodyPartLogs: [],
         },
         sessionStartTime: Date.now(),
