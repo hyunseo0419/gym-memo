@@ -3,6 +3,7 @@ import { getSessions, getDietEntries, removeSession, removeDietEntry } from '../
 import { api } from '../services/api';
 import { BODY_PART_COLORS, CARDIO_COLOR } from '../data/exercises';
 import type { WorkoutSession, DietEntry, BodyPart, CardioSession } from '../types';
+import { getEffectiveDate } from '../utils/date';
 
 // ── 데이터 구조 ─────────────────────────────────────────────────────
 interface DayData {
@@ -22,7 +23,10 @@ function buildDateMap(
     return map.get(k)!;
   };
   sessions.forEach(s => get(s.date.slice(0, 10)).workouts.push(s));
-  dietEntries.forEach(e => get(e.timestamp.slice(0, 10)).diet.push(e));
+  dietEntries.forEach(e => {
+    const d = getEffectiveDate(new Date(e.timestamp));
+    get(toKey(d.getFullYear(), d.getMonth(), d.getDate())).diet.push(e);
+  });
   cardioSessions.forEach(c => get(c.date.slice(0, 10)).cardio.push(c));
   return map;
 }
@@ -32,7 +36,7 @@ function toKey(year: number, month: number, day: number): string {
 }
 
 function todayKey(): string {
-  const d = new Date();
+  const d = getEffectiveDate();
   return toKey(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
@@ -249,10 +253,10 @@ function DayDetail({ data, dateLabel, onDeleted }: {
 
 // ── 메인 ────────────────────────────────────────────────────────────
 export default function CalendarPage() {
-  const now = new Date();
-  const [year, setYear]       = useState(now.getFullYear());
-  const [month, setMonth]     = useState(now.getMonth());
-  const [selected, setSelected] = useState<number | null>(now.getDate());
+  const effectiveNow = getEffectiveDate();
+  const [year, setYear]       = useState(effectiveNow.getFullYear());
+  const [month, setMonth]     = useState(effectiveNow.getMonth());
+  const [selected, setSelected] = useState<number | null>(effectiveNow.getDate());
   const [dateMap, setDateMap] = useState<Map<string, DayData>>(new Map());
 
   const reload = useCallback(async () => {

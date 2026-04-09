@@ -69,9 +69,15 @@ export const EXERCISES: Exercise[] = [
   { id: 'arm_11', name: '딥스', bodyPart: '팔', target: '삼두' },
   { id: 'arm_12', name: '케이블컬', bodyPart: '팔', target: '이두' },
   { id: 'arm_13', name: '클로즈그립벤치프레스', bodyPart: '팔', target: '삼두' },
+
+  // 복근
+  { id: 'abs_1', name: '크런치', bodyPart: '복근', target: '상복근' },
+  { id: 'abs_2', name: '레그레이즈', bodyPart: '복근', target: '하복근' },
+  { id: 'abs_3', name: 'AB머신', bodyPart: '복근', target: '복근전체' },
+  { id: 'abs_4', name: '러시안 트위스트', bodyPart: '복근', target: '복사근' },
 ];
 
-export const BODY_PARTS: BodyPart[] = ['가슴', '등', '하체', '팔', '어깨'];
+export const BODY_PARTS: BodyPart[] = ['가슴', '등', '하체', '팔', '어깨', '복근'];
 
 export const BODY_PART_ICONS: Record<BodyPart, string> = {
   '가슴': '🫁',
@@ -79,6 +85,7 @@ export const BODY_PART_ICONS: Record<BodyPart, string> = {
   '하체': '🦵',
   '팔': '💪',
   '어깨': '🏆',
+  '복근': '🔥',
 };
 
 // 부위별 색상 - 차트에서 구분이 잘 되도록 명확히 다른 색 사용
@@ -88,6 +95,7 @@ export const BODY_PART_COLORS: Record<BodyPart, { from: string; to: string; acce
   '하체': { from: '#CC5500', to: '#FF8C00', accent: '#FF8C00' }, // Orange
   '팔': { from: '#CCBB00', to: '#FFE600', accent: '#FFE600' }, // Yellow
   '어깨': { from: '#9944CC', to: '#CC77FF', accent: '#CC77FF' }, // Purple
+  '복근': { from: '#CC0066', to: '#FF3399', accent: '#FF3399' }, // Pink
 };
 
 // 유산소 전용 색상/아이콘

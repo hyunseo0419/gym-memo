@@ -1,4 +1,4 @@
-export type BodyPart = '가슴' | '등' | '하체' | '팔' | '어깨';
+export type BodyPart = '가슴' | '등' | '하체' | '팔' | '어깨' | '복근';
 
 export interface Exercise {
   id: string;

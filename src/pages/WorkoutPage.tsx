@@ -363,6 +363,7 @@ function getBodyPartEmoji(part: BodyPart): string {
     '하체': '🦵',
     '팔': '💪',
     '어깨': '🏆',
+    '복근': '🔥',
   };
   return map[part];
 }

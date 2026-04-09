@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getSessions } from '../services/storage';
+import { api } from '../services/api';
 import type { WorkoutSession } from '../types';
 import { BODY_PART_COLORS } from '../data/exercises';
 
@@ -80,6 +81,16 @@ export default function HistoryPage() {
 
   useEffect(() => {
     setSessions(getSessions());
+    api.getWorkouts()
+      .then(remote => {
+        const local = getSessions();
+        const map = new Map(local.map(s => [s.id, s]));
+        remote.forEach(s => map.set(s.id, s));
+        const merged = Array.from(map.values());
+        localStorage.setItem('gym_sessions', JSON.stringify(merged));
+        setSessions(merged);
+      })
+      .catch(() => {});
   }, []);
 
   const sorted = [...sessions].sort(
