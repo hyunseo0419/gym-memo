@@ -75,6 +75,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'abs_2', name: '레그레이즈', bodyPart: '복근', target: '하복근' },
   { id: 'abs_3', name: 'AB머신', bodyPart: '복근', target: '복근전체' },
   { id: 'abs_4', name: '러시안 트위스트', bodyPart: '복근', target: '복사근' },
+  { id: 'abs_5', name: '싯업', bodyPart: '복근', target: '복근전체' },
 ];
 
 export const BODY_PARTS: BodyPart[] = ['가슴', '등', '하체', '팔', '어깨', '복근'];
