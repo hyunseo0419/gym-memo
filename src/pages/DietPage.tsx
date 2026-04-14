@@ -4,7 +4,7 @@ import {
 } from '../services/storage';
 import { api } from '../services/api';
 import type { DietEntry } from '../types';
-import { getEffectiveDateString } from '../utils/date';
+import { getEffectiveDateString, getEffectiveDateKey } from '../utils/date';
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -49,18 +49,23 @@ function AddDietModal({
   const [calories, setCalories]   = useState('');
   const [protein, setProtein]     = useState('');
   const [error, setError]         = useState('');
-  // AI 분석 결과를 서버 ID와 함께 보관 (중복 저장 방지)
+  const [selectedDate, setSelectedDate] = useState(getEffectiveDateKey());
   const [serverResult, setServerResult] = useState<DietEntry | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const buildTimestamp = (): string => {
+    if (selectedDate === getEffectiveDateKey()) return new Date().toISOString();
+    return new Date(`${selectedDate}T12:00:00`).toISOString();
+  };
 
   // AI 분석: 칼로리·단백질 자동 입력
   const handleAnalyze = async () => {
     if (!menuName.trim()) return;
     setAnalyzing(true);
     setError('');
-    api.analyzeDiet(menuName.trim())
+    api.analyzeDiet(menuName.trim(), buildTimestamp())
       .then(result => {
         setServerResult(result);
         setCalories(String(result.calories));
@@ -74,31 +79,35 @@ function AddDietModal({
     const cal = parseInt(calories);
     const pro = parseFloat(protein);
     if (isNaN(cal) || isNaN(pro)) return;
+    const timestamp = buildTimestamp();
 
     if (serverResult) {
-      // AI 모드: 서버에는 이미 저장됨 → 서버 ID로 로컬 저장
-      const finalEntry: DietEntry = { ...serverResult, calories: cal, protein: pro };
-      addDietEntry(finalEntry);
-      onAdded(finalEntry);
+      const modified = cal !== serverResult.calories || pro !== serverResult.protein;
+      if (modified) {
+        // AI 값 수정됨 → 서버에서 기존 항목 삭제 후 수정된 값으로 새로 저장
+        api.deleteDiet(serverResult.id).catch(() => {});
+        try {
+          const saved = await api.saveDiet({ menuName: menuName.trim(), calories: cal, protein: pro, timestamp });
+          addDietEntry(saved);
+          onAdded(saved);
+        } catch {
+          const entry: DietEntry = { id: generateId(), timestamp, menuName: menuName.trim(), calories: cal, protein: pro };
+          addDietEntry(entry);
+          onAdded(entry);
+        }
+      } else {
+        // AI 값 그대로 → 이미 서버에 저장됨
+        addDietEntry(serverResult);
+        onAdded(serverResult);
+      }
     } else {
       // 직접 입력 모드
       try {
-        const saved = await api.saveDiet({
-          menuName: menuName.trim(),
-          calories: cal,
-          protein: pro,
-          timestamp: new Date().toISOString(),
-        });
+        const saved = await api.saveDiet({ menuName: menuName.trim(), calories: cal, protein: pro, timestamp });
         addDietEntry(saved);
         onAdded(saved);
       } catch {
-        const entry: DietEntry = {
-          id: generateId(),
-          timestamp: new Date().toISOString(),
-          menuName: menuName.trim(),
-          calories: cal,
-          protein: pro,
-        };
+        const entry: DietEntry = { id: generateId(), timestamp, menuName: menuName.trim(), calories: cal, protein: pro };
         addDietEntry(entry);
         onAdded(entry);
       }
@@ -112,6 +121,17 @@ function AddDietModal({
       <div className="modal-box" onClick={e => e.stopPropagation()}>
 
         <h3 className="modal-title">식단 추가</h3>
+
+        {/* 날짜 선택 */}
+        <div className="form-group">
+          <label className="form-label">날짜</label>
+          <input
+            type="date"
+            className="text-input"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+          />
+        </div>
 
         {/* 메뉴명 */}
         <div className="form-group">

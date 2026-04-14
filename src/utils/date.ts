@@ -28,3 +28,13 @@ export function getEffectiveDateString(d: Date = new Date()): string {
 export function getEffectiveDateISO(): string {
   return getEffectiveDate().toISOString();
 }
+
+/** Date → 로컬 YYYY-MM-DD (캘린더·date input용) */
+export function toLocalDateKey(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** 실효 날짜의 로컬 YYYY-MM-DD */
+export function getEffectiveDateKey(): string {
+  return toLocalDateKey(getEffectiveDate());
+}

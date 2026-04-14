@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import type { WorkoutSession, BodyPartLog, ExerciseLog, WorkoutSet, Exercise, BodyPart } from '../types';
 import { getEffectiveDateISO } from '../utils/date';
+
+const PROGRESS_KEY = 'gym_workout_progress';
 
 interface WorkoutState {
   currentSession: WorkoutSession | null;
@@ -145,6 +147,19 @@ const initialState: WorkoutState = {
   sendResult: 'idle',
 };
 
+function loadProgress(): WorkoutState {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw) as WorkoutState;
+      if (saved.currentSession) {
+        return { ...saved, isSending: false, sendResult: 'idle' };
+      }
+    }
+  } catch { /* ignore */ }
+  return initialState;
+}
+
 interface WorkoutContextValue {
   state: WorkoutState;
   startSession: () => void;
@@ -161,7 +176,16 @@ interface WorkoutContextValue {
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(workoutReducer, initialState);
+  const [state, dispatch] = useReducer(workoutReducer, undefined, loadProgress);
+
+  // 세션 진행 중이면 localStorage에 자동 저장, 아니면 삭제
+  useEffect(() => {
+    if (state.currentSession) {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(state));
+    } else {
+      localStorage.removeItem(PROGRESS_KEY);
+    }
+  }, [state]);
 
   const startSession = useCallback(() => dispatch({ type: 'START_SESSION' }), []);
   const selectBodyPart = useCallback((bodyPart: BodyPart) => dispatch({ type: 'SELECT_BODY_PART', bodyPart }), []);

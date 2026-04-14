@@ -78,9 +78,14 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
             입장하기
           </button>
         </form>
-        <p style={{ color: '#3a3a4a', fontSize: '11px', marginTop: '40px', letterSpacing: '0.05em' }}>
-          v1.0.4
-        </p>
+        <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <p style={{ color: '#3a3a4a', fontSize: '11px', letterSpacing: '0.05em' }}>
+            v1.1.0
+          </p>
+          <p style={{ color: '#2a2a3a', fontSize: '10px', marginTop: '4px' }}>
+            운동 중 데이터 자동 저장 / 과거 날짜 입력 지원
+          </p>
+        </div>
       </main>
     </div>
   );

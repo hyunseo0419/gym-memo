@@ -3,7 +3,7 @@ import { getSessions, getDietEntries, removeSession, removeDietEntry } from '../
 import { api } from '../services/api';
 import { BODY_PART_COLORS, CARDIO_COLOR } from '../data/exercises';
 import type { WorkoutSession, DietEntry, BodyPart, CardioSession } from '../types';
-import { getEffectiveDate } from '../utils/date';
+import { getEffectiveDate, toLocalDateKey } from '../utils/date';
 
 // ── 데이터 구조 ─────────────────────────────────────────────────────
 interface DayData {
@@ -22,12 +22,12 @@ function buildDateMap(
     if (!map.has(k)) map.set(k, { workouts: [], diet: [], cardio: [] });
     return map.get(k)!;
   };
-  sessions.forEach(s => get(s.date.slice(0, 10)).workouts.push(s));
+  sessions.forEach(s => get(toLocalDateKey(new Date(s.date))).workouts.push(s));
   dietEntries.forEach(e => {
     const d = getEffectiveDate(new Date(e.timestamp));
-    get(toKey(d.getFullYear(), d.getMonth(), d.getDate())).diet.push(e);
+    get(toLocalDateKey(d)).diet.push(e);
   });
-  cardioSessions.forEach(c => get(c.date.slice(0, 10)).cardio.push(c));
+  cardioSessions.forEach(c => get(toLocalDateKey(new Date(c.date))).cardio.push(c));
   return map;
 }
 

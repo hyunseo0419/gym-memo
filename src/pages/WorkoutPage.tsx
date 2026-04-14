@@ -4,6 +4,7 @@ import { useWorkout } from '../context/WorkoutContext';
 import { BODY_PARTS, BODY_PART_COLORS, CARDIO_COLOR, CARDIO_ICON, getExercisesByBodyPart } from '../data/exercises';
 import { api } from '../services/api';
 import { addSession, removeSession } from '../services/storage';
+import { toLocalDateKey } from '../utils/date';
 import type { BodyPart } from '../types';
 
 // ── 부위 선택 화면 ──────────────────────────────────────────────────
@@ -215,6 +216,7 @@ function SetRecorder({ bodyPart }: { bodyPart: BodyPart }) {
 function SessionSummary() {
   const { state, resetSession, dispatch } = useWorkout();
   const session = state.currentSession!;
+  const [sessionDate, setSessionDate] = useState(toLocalDateKey(new Date(session.date)));
 
   const totalSets = session.bodyPartLogs.reduce(
     (sum, bpl) => sum + bpl.exercises.reduce((s, e) => s + e.sets.length, 0), 0
@@ -226,17 +228,14 @@ function SessionSummary() {
   );
 
   const handleFinish = async () => {
+    const finalSession = { ...session, date: new Date(`${sessionDate}T12:00:00`).toISOString() };
     dispatch({ type: 'SET_SENDING', sending: true });
-    // 1) 로컬에 먼저 저장
-    addSession(session);
+    addSession(finalSession);
     try {
-      // 2) 서버 전송
-      await api.sendWorkout(session);
-      // 3) 성공 시 로컬 삭제
-      removeSession(session.id);
+      await api.sendWorkout(finalSession);
+      removeSession(finalSession.id);
       dispatch({ type: 'SET_SEND_RESULT', result: 'success' });
     } catch {
-      // 서버 실패 시 로컬 유지 (히스토리/홈에서 계속 사용)
       dispatch({ type: 'SET_SEND_RESULT', result: 'error' });
     } finally {
       dispatch({ type: 'SET_SENDING', sending: false });
@@ -258,6 +257,17 @@ function SessionSummary() {
     <div className="screen fade-in">
       <div className="screen-header">
         <h2 className="screen-title">운동 요약</h2>
+      </div>
+
+      {/* 날짜 선택 */}
+      <div className="form-group" style={{ marginBottom: 12 }}>
+        <label className="form-label">기록 날짜</label>
+        <input
+          type="date"
+          className="text-input"
+          value={sessionDate}
+          onChange={e => setSessionDate(e.target.value)}
+        />
       </div>
 
       <div className="summary-stats">

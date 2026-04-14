@@ -34,10 +34,10 @@ export const api = {
    * 메뉴명을 서버로 전송 → 서버가 AI로 칼로리/단백질 계산 후 저장
    * 응답: DietEntry (id, menuName, calories, protein, timestamp 포함)
    */
-  analyzeDiet(menuName: string): Promise<DietEntry> {
+  analyzeDiet(menuName: string, timestamp?: string): Promise<DietEntry> {
     return request<DietEntry>('/api/diet/analyze', {
       method: 'POST',
-      body: JSON.stringify({ menuName, timestamp: new Date().toISOString() }),
+      body: JSON.stringify({ menuName, timestamp: timestamp ?? new Date().toISOString() }),
     });
   },
 
